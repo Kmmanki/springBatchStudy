@@ -1,6 +1,5 @@
 package com.batch.study.batch.library;
 
-import com.batch.study.repository.FileVORepository;
 import com.batch.study.repository.LibraryVORepository;
 import com.batch.study.repository.SidoRepository;
 import com.batch.study.repository.SigunguRepository;
@@ -13,9 +12,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
@@ -37,14 +36,17 @@ public class DbToDbStep {
 //    @Bean(name = "dbToDbStep")
     public Step dbToDbStep(){
         return stepBuilderFactory.get("dbToDbStep")
+                //FileVO(DB) -> LibraryVO (DB) 만들기
                 .<FileVO, LibraryVO>chunk(30)
                 .reader(fileVOJpaPagingItemReader())
                 .processor(fileVOLibraryVOItemProcessor())
-                .writer(itemWriter())
+                .writer(jpaItemWriter())
+//                .writer(itemWriter())
                 .build();
 
     }
 
+    //30개의 FileVO를 가져온다.
     public JpaPagingItemReader<FileVO> fileVOJpaPagingItemReader(){
         return new JpaPagingItemReaderBuilder<FileVO>()
                 .name("fileVOJpaPagingItemReader")
@@ -55,9 +57,14 @@ public class DbToDbStep {
     }
 
     public ItemProcessor<FileVO, LibraryVO> fileVOLibraryVOItemProcessor(){
+        //반환할 ItemProcessor를 만들고 내부 process 오버라이딩
+
+//                  InputType, OutputType
         ItemProcessor<FileVO, LibraryVO> itemProcessor = new ItemProcessor<FileVO, LibraryVO>() {
 
             @Override
+            //FileVO를 사용하여 LibraryVO, sidoVO, SigunguVO 를만들고
+            //Sido, Sigungu는 저장. LibraryVO는 반환
             public LibraryVO process(FileVO item) throws Exception {
                 String sidoName = item.getSido();
                 String sigunguName = item.getSigungu();
@@ -93,4 +100,11 @@ public class DbToDbStep {
             libraryVORepository.saveAll(list);
         };
     }
+
+    public JpaItemWriter<LibraryVO> jpaItemWriter() {
+        JpaItemWriter<LibraryVO> jpaItemWriter = new JpaItemWriter<>();
+        jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
+        return jpaItemWriter;
+    }
+
 }

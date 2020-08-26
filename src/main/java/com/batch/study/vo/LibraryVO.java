@@ -1,6 +1,5 @@
 package com.batch.study.vo;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
